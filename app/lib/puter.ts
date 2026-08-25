@@ -42,8 +42,11 @@ declare global {
     }
 }
 
+const PUTER_SCRIPT_URL = "https://js.puter.com/v2/";
+
 interface PuterStore {
     isLoading: boolean;
+    isInitializing: boolean;
     error: string | null;
     puterReady: boolean;
     auth: {
@@ -72,9 +75,8 @@ interface PuterStore {
             testMode?: boolean,
             options?: PuterChatOptions
         ) => Promise<AIResponse | undefined>;
-        feedback: (
-            path: string,
-            message: string
+        analyzeResume: (
+            prompt: string
         ) => Promise<AIResponse | undefined>;
         img2txt: (
             image: string | File | Blob,
@@ -99,8 +101,148 @@ interface PuterStore {
 const getPuter = (): typeof window.puter | null =>
     typeof window !== "undefined" && window.puter ? window.puter : null;
 
+let initStarted = false;
+
+const loadPuterScript = (): Promise<void> => {
+    if (typeof window === "undefined") {
+        return Promise.reject(new Error("Puter.js can only load in the browser"));
+    }
+
+    if (getPuter()) {
+        return Promise.resolve();
+    }
+
+    const existing = document.querySelector<HTMLScriptElement>(
+        `script[src="${PUTER_SCRIPT_URL}"]`
+    );
+
+    if (existing) {
+        return new Promise((resolve, reject) => {
+            if (getPuter()) {
+                resolve();
+                return;
+            }
+
+            existing.addEventListener("load", () => resolve(), { once: true });
+            existing.addEventListener(
+                "error",
+                () => reject(new Error("Failed to load Puter.js")),
+                { once: true }
+            );
+        });
+    }
+
+    return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = PUTER_SCRIPT_URL;
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error("Failed to load Puter.js"));
+        document.head.appendChild(script);
+    });
+};
+
+const installDevMock = (): void => {
+    let signedIn = false;
+
+    (window as Window & { puter: Window["puter"] }).puter = {
+        auth: {
+            isSignedIn: async () => signedIn,
+            getUser: async () =>
+                signedIn
+                    ? ({ uuid: "dev-uuid", username: "developer" } as PuterUser)
+                    : (null as unknown as PuterUser),
+            signIn: async () => {
+                signedIn = true;
+            },
+            signOut: async () => {
+                signedIn = false;
+            },
+        },
+        fs: {
+            write: async (path: string, data: string | File | Blob) => {
+                const blob =
+                    data instanceof Blob ? data : new Blob([String(data)]);
+                return new File([blob], path.split("/").pop() || "file");
+            },
+            read: async () => new Blob(["mock file contents"]),
+            upload: async (files: File[] | Blob[]) => {
+                const file = (files as File[])[0];
+                const path = `/mock/${Date.now()}-${file?.name || "upload"}`;
+                return {
+                    id: `${Date.now()}`,
+                    uid: `${Date.now()}`,
+                    name: file?.name || "upload",
+                    path,
+                    is_dir: false,
+                    parent_id: "",
+                    parent_uid: "",
+                    created: Date.now(),
+                    modified: Date.now(),
+                    accessed: Date.now(),
+                    size: (file as File)?.size || 0,
+                    writable: true,
+                } as FSItem;
+            },
+            delete: async () => {},
+            readdir: async () => [],
+        },
+        ai: {
+            chat: async () => ({
+                message: {
+                    content: JSON.stringify({
+                        overall_score: 78,
+                        strengths: [
+                            "Clear and professional formatting with consistent structure",
+                            "Strong action verbs used throughout experience section",
+                            "Quantified achievements with specific metrics and numbers",
+                            "Relevant technical skills are prominently listed"
+                        ],
+                        weaknesses: [
+                            "Summary section is too generic and lacks personalization",
+                            "Missing industry-specific keywords for target role",
+                            "Education section lacks relevant coursework or certifications",
+                            "No links to portfolio, GitHub, or LinkedIn profile"
+                        ],
+                        missing_keywords: [
+                            "agile", "scrum", "CI/CD", "microservices",
+                            "cloud computing", "REST API", "system design"
+                        ],
+                        ats_notes: [
+                            "Resume uses standard section headers which parse well in ATS",
+                            "Avoid using tables or columns — some ATS cannot parse them",
+                            "File format is compatible with most ATS platforms",
+                            "Consider adding a skills section with exact keywords from job posting"
+                        ],
+                        suggestions: [
+                            "Tailor your summary to specifically mention the target role and company",
+                            "Add metrics to at least 3 more bullet points (e.g., 'reduced load time by 40%')",
+                            "Include a dedicated 'Technical Skills' section with keywords from the job description",
+                            "Add links to your GitHub profile and any relevant project portfolios",
+                            "Remove outdated skills and replace with current industry-standard tools",
+                            "Consider adding volunteer work or open-source contributions"
+                        ],
+                        job_match_score: 72
+                    }),
+                },
+            }),
+            img2txt: async () => "Mock OCR text",
+        },
+        kv: {
+            get: async () => null,
+            set: async () => true,
+            delete: async () => true,
+            list: async () => [],
+            flush: async () => true,
+        },
+    };
+};
+
 export const usePuterStore = create<PuterStore>((set, get) => {
     const setError = (msg: string) => {
+        // also log to console to aid local debugging
+        // eslint-disable-next-line no-console
+        console.error('Puter error:', msg);
         set({
             error: msg,
             isLoading: false,
@@ -123,7 +265,7 @@ export const usePuterStore = create<PuterStore>((set, get) => {
             return false;
         }
 
-        set({ isLoading: true, error: null });
+        set({ isInitializing: true, error: null });
 
         try {
             const isSignedIn = await puter.auth.isSignedIn();
@@ -139,7 +281,7 @@ export const usePuterStore = create<PuterStore>((set, get) => {
                         checkAuthStatus: get().auth.checkAuthStatus,
                         getUser: () => user,
                     },
-                    isLoading: false,
+                    isInitializing: false,
                 });
                 return true;
             } else {
@@ -153,13 +295,14 @@ export const usePuterStore = create<PuterStore>((set, get) => {
                         checkAuthStatus: get().auth.checkAuthStatus,
                         getUser: () => null,
                     },
-                    isLoading: false,
+                    isInitializing: false,
                 });
                 return false;
             }
         } catch (err) {
             const msg =
                 err instanceof Error ? err.message : "Failed to check auth status";
+            set({ isInitializing: false });
             setError(msg);
             return false;
         }
@@ -242,27 +385,44 @@ export const usePuterStore = create<PuterStore>((set, get) => {
     };
 
     const init = (): void => {
-        const puter = getPuter();
-        if (puter) {
-            set({ puterReady: true });
-            checkAuthStatus();
-            return;
-        }
+        if (initStarted || typeof window === "undefined") return;
+        initStarted = true;
 
-        const interval = setInterval(() => {
-            if (getPuter()) {
-                clearInterval(interval);
+        set({ isInitializing: true, error: null });
+
+        const waitForPuter = async (): Promise<void> => {
+            if (getPuter()) return;
+
+            for (let attempt = 0; attempt < 100; attempt++) {
+                await new Promise((resolve) => setTimeout(resolve, 100));
+                if (getPuter()) return;
+            }
+
+            throw new Error("Puter.js failed to initialize");
+        };
+
+        loadPuterScript()
+            .then(() => waitForPuter())
+            .then(() => {
                 set({ puterReady: true });
-                checkAuthStatus();
-            }
-        }, 100);
+                return checkAuthStatus();
+            })
+            .catch((err) => {
+                if (import.meta.env.DEV) {
+                    // eslint-disable-next-line no-console
+                    console.warn(
+                        "Puter.js unavailable — using local dev mock. Real auth popup requires Puter CDN."
+                    );
+                    installDevMock();
+                    set({ puterReady: true });
+                    return checkAuthStatus();
+                }
 
-        setTimeout(() => {
-            clearInterval(interval);
-            if (!getPuter()) {
-                setError("Puter.js failed to load within 10 seconds");
-            }
-        }, 10000);
+                const msg =
+                    err instanceof Error ? err.message : "Failed to load Puter.js";
+                set({ isInitializing: false });
+                setError(msg);
+            });
     };
 
     const write = async (path: string, data: string | File | Blob) => {
@@ -327,31 +487,61 @@ export const usePuterStore = create<PuterStore>((set, get) => {
         >;
     };
 
-    const feedback = async (path: string, message: string) => {
+    const analyzeResume = async (prompt: string) => {
         const puter = getPuter();
         if (!puter) {
             setError("Puter.js not available");
             return;
         }
 
-        return puter.ai.chat(
-            [
-                {
-                    role: "user",
-                    content: [
-                        {
-                            type: "file",
-                            puter_path: path,
-                        },
-                        {
-                            type: "text",
-                            text: message,
-                        },
-                    ],
-                },
-            ],
-            { model: "claude-3-7-sonnet" }
-        ) as Promise<AIResponse | undefined>;
+        // Use chat message format for better compatibility
+        const messages: ChatMessage[] = [
+            {
+                role: "system",
+                content: "You are an expert ATS resume analyst. You MUST respond with ONLY valid JSON. No markdown, no code fences, no explanation — just the JSON object."
+            },
+            {
+                role: "user",
+                content: prompt
+            }
+        ];
+
+        // Try multiple models in order of preference
+        const modelsToTry = ["gpt-4o-mini", "claude-3-5-sonnet", "gpt-4o"];
+        
+        for (const model of modelsToTry) {
+            try {
+                console.log(`Trying model: ${model}`);
+                const response = await puter.ai.chat(messages, { model }) as AIResponse | undefined;
+                
+                if (response) {
+                    // Check for error in response content
+                    const content = typeof response === "string"
+                        ? response
+                        : response?.message?.content;
+                    const contentStr = typeof content === "string" ? content : "";
+                    
+                    if (contentStr.toLowerCase().includes("model output error")) {
+                        console.warn(`Model ${model} returned error, trying next...`);
+                        continue;
+                    }
+                    
+                    return response;
+                }
+            } catch (err) {
+                console.warn(`Model ${model} failed:`, err);
+                continue;
+            }
+        }
+
+        // Final fallback: no model specified (Puter default)
+        try {
+            console.log("Trying Puter default model...");
+            return await puter.ai.chat(messages) as AIResponse | undefined;
+        } catch (err) {
+            console.error("All models failed:", err);
+            throw new Error("AI analysis failed. Please try again.");
+        }
     };
 
     const img2txt = async (image: string | File | Blob, testMode?: boolean) => {
@@ -412,7 +602,8 @@ export const usePuterStore = create<PuterStore>((set, get) => {
     };
 
     return {
-        isLoading: true,
+        isLoading: false,
+        isInitializing: true,
         error: null,
         puterReady: false,
         auth: {
@@ -438,7 +629,7 @@ export const usePuterStore = create<PuterStore>((set, get) => {
                 testMode?: boolean,
                 options?: PuterChatOptions
             ) => chat(prompt, imageURL, testMode, options),
-            feedback: (path: string, message: string) => feedback(path, message),
+            analyzeResume: (prompt: string) => analyzeResume(prompt),
             img2txt: (image: string | File | Blob, testMode?: boolean) =>
                 img2txt(image, testMode),
         },

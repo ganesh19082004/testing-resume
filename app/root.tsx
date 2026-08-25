@@ -11,6 +11,28 @@ import type { Route } from "./+types/root";
 import "./app.css";
 import {usePuterStore} from "~/lib/puter";
 import {useEffect} from "react";
+import {useCallback} from "react";
+
+function PuterErrorBanner() {
+  const { error, init } = usePuterStore();
+
+  const handleRetry = useCallback(() => {
+    init();
+    // eslint-disable-next-line no-console
+    console.log('Re-initializing Puter...');
+  }, [init]);
+
+  if (!error) return null;
+
+  return (
+    <div className="w-full bg-rose-800 text-white p-3 text-sm flex items-center justify-between">
+      <div>Puter error: {error}</div>
+      <div className="space-x-2">
+        <button className="px-3 py-1 bg-rose-700 rounded" onClick={handleRetry}>Retry</button>
+      </div>
+    </div>
+  );
+}
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -42,6 +64,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <script src="https://js.puter.com/v2/"></script>
+        <PuterErrorBanner />
         {children}
         <ScrollRestoration />
         <Scripts />

@@ -1,77 +1,78 @@
 import type { Route } from "./+types/home";
+import { Link, useNavigate } from "react-router";
+import { useEffect } from "react";
 import Navbar from "~/components/Navbar";
-import ResumeCard from "~/components/ResumeCard";
-import {usePuterStore} from "~/lib/puter";
-import {Link, useNavigate} from "react-router";
-import {useEffect, useState} from "react";
+import { usePuterStore } from "~/lib/puter";
 
 export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "Resumind" },
-    { name: "description", content: "Smart feedback for your dream job!" },
-  ];
+    return [
+        { title: "Resumind — AI Resume Studio" },
+        { name: "description", content: "Score your resume against ATS with AI-powered insights" },
+    ];
 }
 
+const FEATURES = [
+    { title: "ATS Scoring", desc: "Get scored against real Applicant Tracking Systems", icon: "📊" },
+    { title: "AI Analysis", desc: "Strengths, weaknesses, and missing keywords identified", icon: "✨" },
+    { title: "Actionable Tips", desc: "Concrete suggestions to improve your resume instantly", icon: "🎯" },
+];
+
 export default function Home() {
-  const { auth, kv } = usePuterStore();
-  const navigate = useNavigate();
-  const [resumes, setResumes] = useState<Resume[]>([]);
-  const [loadingResumes, setLoadingResumes] = useState(false);
+    const { auth, isInitializing, puterReady } = usePuterStore();
+    const navigate = useNavigate();
 
-  useEffect(() => {
-    if(!auth.isAuthenticated) navigate('/auth?next=/');
-  }, [auth.isAuthenticated])
+    // Redirect authenticated users to dashboard
+    useEffect(() => {
+        if (!isInitializing && puterReady && auth.isAuthenticated) {
+            navigate("/dashboard", { replace: true });
+        }
+    }, [auth.isAuthenticated, isInitializing, puterReady, navigate]);
 
-  useEffect(() => {
-    const loadResumes = async () => {
-      setLoadingResumes(true);
+    return (
+        <main className="bg-gradient min-h-screen">
+            <Navbar />
 
-      const resumes = (await kv.list('resume:*', true)) as KVItem[];
+            <section className="main-section">
+                <div className="page-heading py-16 sm:py-24 w-full">
+                    {/* Badge */}
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/5 mb-6">
+                        <span className="text-xs sm:text-sm font-medium text-amber-300 tracking-wide">AI Powered · Free · ATS Optimized</span>
+                    </div>
 
-      const parsedResumes = resumes?.map((resume) => (
-          JSON.parse(resume.value) as Resume
-      ))
+                    {/* Title */}
+                    <h1 className="mb-3 !text-4xl sm:!text-5xl md:!text-6xl">
+                        Your AI Resume{" "}
+                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500">
+                            Studio
+                        </span>
+                    </h1>
 
-      setResumes(parsedResumes || []);
-      setLoadingResumes(false);
-    }
+                    <p className="text-slate-400 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
+                        Score your resume against ATS, get AI-powered insights, and land more interviews — completely free.
+                    </p>
 
-    loadResumes()
-  }, []);
+                    {/* CTA */}
+                    <div className="flex flex-col sm:flex-row gap-3 mt-8">
+                        <Link
+                            to="/login"
+                            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-semibold text-base transition-all duration-300 shadow-lg shadow-amber-500/20 active:scale-[0.98]"
+                        >
+                            Get Started — It's Free
+                        </Link>
+                    </div>
 
-  return <main className="bg-[url('/images/bg-main.svg')] bg-cover">
-    <Navbar />
-
-    <section className="main-section">
-      <div className="page-heading py-16">
-        <h1>Track Your Applications & Resume Ratings</h1>
-        {!loadingResumes && resumes?.length === 0 ? (
-            <h2>No resumes found. Upload your first resume to get feedback.</h2>
-        ): (
-          <h2>Review your submissions and check AI-powered feedback.</h2>
-        )}
-      </div>
-      {loadingResumes && (
-          <div className="flex flex-col items-center justify-center">
-            <img src="/images/resume-scan-2.gif" className="w-[200px]" />
-          </div>
-      )}
-
-      {!loadingResumes && resumes.length > 0 && (
-        <div className="resumes-section">
-          {resumes.map((resume) => (
-              <ResumeCard key={resume.id} resume={resume} />
-          ))}
-        </div>
-      )}
-
-      {!loadingResumes && resumes?.length === 0 && (
-          <div className="flex flex-col items-center justify-center mt-10 gap-4">
-            <Link to="/upload" className="primary-button w-fit text-xl font-semibold">
-              Upload Resume
-            </Link>
-          </div>
-      )}
-    </section>
-  </main>
+                    {/* Features */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-16 w-full max-w-3xl">
+                        {FEATURES.map((f) => (
+                            <div key={f.title} className="flex flex-col items-center gap-2 p-5 rounded-2xl border border-slate-800 bg-slate-900/30 text-center">
+                                <span className="text-2xl">{f.icon}</span>
+                                <h4 className="text-sm font-bold text-white">{f.title}</h4>
+                                <p className="text-xs text-slate-400">{f.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+        </main>
+    );
 }

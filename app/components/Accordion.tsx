@@ -72,12 +72,12 @@ export const AccordionItem: React.FC<AccordionItemProps> = ({
                                                                 className = "",
                                                             }) => {
     return (
-        <div className={`overflow-hidden border-b border-gray-200 ${className}`}>
+        <div className={`overflow-hidden border-b border-slate-800/60 ${className}`}>
             {children}
         </div>
     );
 };
-
+ 
 interface AccordionHeaderProps {
     itemId: string;
     children: ReactNode;
@@ -85,7 +85,7 @@ interface AccordionHeaderProps {
     icon?: ReactNode;
     iconPosition?: "left" | "right";
 }
-
+ 
 export const AccordionHeader: React.FC<AccordionHeaderProps> = ({
                                                                     itemId,
                                                                     children,
@@ -95,14 +95,14 @@ export const AccordionHeader: React.FC<AccordionHeaderProps> = ({
                                                                 }) => {
     const { toggleItem, isItemActive } = useAccordion();
     const isActive = isItemActive(itemId);
-
+ 
     const defaultIcon = (
         <svg
-            className={cn("w-5 h-5 transition-transform duration-200", {
+            className={cn("w-5 h-5 transition-transform duration-300", {
                 "rotate-180": isActive,
             })}
             fill="none"
-            stroke="#98A2B3"
+            stroke="#64748b"
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
         >
@@ -114,18 +114,19 @@ export const AccordionHeader: React.FC<AccordionHeaderProps> = ({
             />
         </svg>
     );
-
+ 
     const handleClick = () => {
         toggleItem(itemId);
     };
-
+ 
     return (
         <button
             onClick={handleClick}
             className={`
-        w-full px-4 py-3 text-left
+        w-full px-4 py-4 text-left
         focus:outline-none
-        transition-colors duration-200 flex items-center justify-between cursor-pointer
+        transition-all duration-300 flex items-center justify-between cursor-pointer
+        hover:bg-slate-900/30 hover:text-white rounded-xl
         ${className}
       `}
         >

@@ -1,90 +1,213 @@
-import {Link, useNavigate, useParams} from "react-router";
-import {useEffect, useState} from "react";
-import {usePuterStore} from "~/lib/puter";
-import Summary from "~/components/Summary";
-import ATS from "~/components/ATS";
-import Details from "~/components/Details";
+import { useEffect, useState } from "react";
+import { useParams, Link } from "react-router";
+import Navbar from "~/components/Navbar";
+import ProtectedRoute from "~/components/ProtectedRoute";
+import { usePuterStore } from "~/lib/puter";
+import ResultsHeader from "~/components/ResultsHeader";
+import ScoreHero from "~/components/ScoreHero";
+import StrengthWeaknessCards from "~/components/StrengthWeaknessCards";
+import KeywordChips from "~/components/KeywordChips";
+import ATSNotes from "~/components/ATSNotes";
+import SuggestionsList from "~/components/SuggestionsList";
+import ActionBar from "~/components/ActionBar";
 
-export const meta = () => ([
-    { title: 'Resumind | Review ' },
-    { name: 'description', content: 'Detailed overview of your resume' },
-])
-
-const Resume = () => {
-    const { auth, isLoading, fs, kv } = usePuterStore();
+const ResumePage = () => {
     const { id } = useParams();
-    const [imageUrl, setImageUrl] = useState('');
-    const [resumeUrl, setResumeUrl] = useState('');
-    const [feedback, setFeedback] = useState<Feedback | null>(null);
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        if(!isLoading && !auth.isAuthenticated) navigate(`/auth?next=/resume/${id}`);
-    }, [isLoading])
+    const { kv, fs } = usePuterStore();
+    const [resume, setResume] = useState<Resume | null>(null);
+    const [resumeImageUrl, setResumeImageUrl] = useState<string>("");
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const loadResume = async () => {
-            const resume = await kv.get(`resume:${id}`);
+            if (!id) {
+                setError("No resume ID provided.");
+                setIsLoading(false);
+                return;
+            }
 
-            if(!resume) return;
+            try {
+                const raw = await kv.get(`resume:${id}`);
+                if (!raw) {
+                    setError("Resume not found. It may have been deleted.");
+                    setIsLoading(false);
+                    return;
+                }
 
-            const data = JSON.parse(resume);
+                const data: Resume = JSON.parse(raw);
+                setResume(data);
 
-            const resumeBlob = await fs.read(data.resumePath);
-            if(!resumeBlob) return;
-
-            const pdfBlob = new Blob([resumeBlob], { type: 'application/pdf' });
-            const resumeUrl = URL.createObjectURL(pdfBlob);
-            setResumeUrl(resumeUrl);
-
-            const imageBlob = await fs.read(data.imagePath);
-            if(!imageBlob) return;
-            const imageUrl = URL.createObjectURL(imageBlob);
-            setImageUrl(imageUrl);
-
-            setFeedback(data.feedback);
-            console.log({resumeUrl, imageUrl, feedback: data.feedback });
-        }
+                // Load resume preview image if available
+                if (data.imagePath) {
+                    try {
+                        const blob = await fs.read(data.imagePath);
+                        if (blob) {
+                            setResumeImageUrl(URL.createObjectURL(blob));
+                        }
+                    } catch {
+                        // Image loading is non-critical
+                    }
+                }
+            } catch (err) {
+                setError("Failed to load resume data.");
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
         loadResume();
-    }, [id]);
+    }, [id, kv, fs]);
+
+    if (isLoading) {
+        return (
+            <main className="bg-gradient min-h-screen">
+                <Navbar />
+                <section className="main-section">
+                    <div className="flex flex-col items-center justify-center py-20 gap-4">
+                        <div className="w-10 h-10 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                        <p className="text-slate-400">Loading analysis...</p>
+                    </div>
+                </section>
+            </main>
+        );
+    }
+
+    if (error || !resume) {
+        return (
+            <main className="bg-gradient min-h-screen">
+                <Navbar />
+                <section className="main-section">
+                    <div className="flex flex-col items-center justify-center py-20 gap-6">
+                        <div className="bg-rose-950/30 border border-rose-800/40 rounded-2xl p-6 max-w-md text-center">
+                            <svg
+                                className="w-12 h-12 text-rose-400 mx-auto mb-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={1.5}
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+                                />
+                            </svg>
+                            <p className="text-rose-300 text-lg font-medium mb-2">
+                                {error || "Resume not found"}
+                            </p>
+                            <p className="text-slate-400 text-sm mb-4">
+                                The resume you&apos;re looking for doesn&apos;t
+                                exist or may have been removed.
+                            </p>
+                        </div>
+                        <Link to="/upload" className="primary-button">
+                            Analyze a New Resume
+                        </Link>
+                    </div>
+                </section>
+            </main>
+        );
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawFeedback: any = resume.feedback || {};
+
+    // Normalize feedback — handle both old format (overallScore) and new format (overall_score)
+    const feedback: AnalysisResult = {
+        overall_score: rawFeedback.overall_score ?? rawFeedback.overallScore ?? 0,
+        strengths: rawFeedback.strengths ?? [],
+        weaknesses: rawFeedback.weaknesses ?? [],
+        missing_keywords: rawFeedback.missing_keywords ?? [],
+        ats_notes: rawFeedback.ats_notes ?? [],
+        suggestions: rawFeedback.suggestions ?? [],
+        job_match_score: rawFeedback.job_match_score,
+    };
 
     return (
-        <main className="!pt-0">
-            <nav className="resume-nav">
-                <Link to="/" className="back-button">
-                    <img src="/icons/back.svg" alt="logo" className="w-2.5 h-2.5" />
-                    <span className="text-gray-800 text-sm font-semibold">Back to Homepage</span>
-                </Link>
-            </nav>
-            <div className="flex flex-row w-full max-lg:flex-col-reverse">
-                <section className="feedback-section bg-[url('/images/bg-small.svg') bg-cover h-[100vh] sticky top-0 items-center justify-center">
-                    {imageUrl && resumeUrl && (
-                        <div className="animate-in fade-in duration-1000 gradient-border max-sm:m-0 h-[90%] max-wxl:h-fit w-fit">
-                            <a href={resumeUrl} target="_blank" rel="noopener noreferrer">
-                                <img
-                                    src={imageUrl}
-                                    className="w-full h-full object-contain rounded-2xl"
-                                    title="resume"
-                                />
-                            </a>
+        <main className="bg-gradient min-h-screen">
+            <Navbar />
+
+            <section className="main-section">
+                <div className="w-full max-w-4xl mx-auto py-8 sm:py-12 px-4 sm:px-6 flex flex-col gap-6">
+                    {/* Header */}
+                    <ResultsHeader
+                        companyName={resume.companyName}
+                        jobTitle={resume.jobTitle}
+                    />
+
+                    {/* Resume preview + Score hero */}
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                        {/* Resume image preview */}
+                        {resumeImageUrl && (
+                            <div className="lg:col-span-2">
+                                <div className="bg-slate-900/40 border border-slate-800 rounded-2xl shadow-xl p-3 overflow-hidden">
+                                    <img
+                                        src={resumeImageUrl}
+                                        alt="Resume preview"
+                                        className="w-full rounded-xl object-cover object-top max-h-[400px]"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Score Hero */}
+                        <div
+                            className={
+                                resumeImageUrl
+                                    ? "lg:col-span-3"
+                                    : "lg:col-span-5"
+                            }
+                        >
+                            <ScoreHero result={feedback} />
                         </div>
+                    </div>
+
+                    {/* Strengths & Weaknesses */}
+                    {(feedback.strengths.length > 0 || feedback.weaknesses.length > 0) && (
+                        <StrengthWeaknessCards
+                            strengths={feedback.strengths}
+                            weaknesses={feedback.weaknesses}
+                        />
                     )}
-                </section>
-                <section className="feedback-section">
-                    <h2 className="text-4xl !text-black font-bold">Resume Review</h2>
-                    {feedback ? (
-                        <div className="flex flex-col gap-8 animate-in fade-in duration-1000">
-                            <Summary feedback={feedback} />
-                            <ATS score={feedback.ATS.score || 0} suggestions={feedback.ATS.tips || []} />
-                            <Details feedback={feedback} />
-                        </div>
-                    ) : (
-                        <img src="/images/resume-scan-2.gif" className="w-full" />
+
+                    {/* Missing Keywords */}
+                    {feedback.missing_keywords &&
+                        feedback.missing_keywords.length > 0 && (
+                            <KeywordChips
+                                keywords={feedback.missing_keywords}
+                            />
+                        )}
+
+                    {/* ATS Notes */}
+                    {feedback.ats_notes && feedback.ats_notes.length > 0 && (
+                        <ATSNotes notes={feedback.ats_notes} />
                     )}
-                </section>
-            </div>
+
+                    {/* Suggestions */}
+                    {feedback.suggestions &&
+                        feedback.suggestions.length > 0 && (
+                            <SuggestionsList
+                                suggestions={feedback.suggestions}
+                            />
+                        )}
+
+                    {/* Action Bar */}
+                    <ActionBar
+                        result={feedback}
+                        companyName={resume.companyName}
+                        jobTitle={resume.jobTitle}
+                    />
+                </div>
+            </section>
         </main>
-    )
-}
-export default Resume
+    );
+};
+
+const ResumePageProtected = () => (
+    <ProtectedRoute>
+        <ResumePage />
+    </ProtectedRoute>
+);
+
+export default ResumePageProtected;
