@@ -310,22 +310,29 @@ export const usePuterStore = create<PuterStore>((set, get) => {
         }
     };
 
-    const signIn = async (): Promise<void> => {
+    const signIn = (): void => {
         const puter = getPuter();
         if (!puter) {
-            setError("Puter.js not available");
+            setError("Puter.js not available. Please refresh the page.");
             return;
         }
 
         set({ isLoading: true, error: null });
 
-        try {
-            await puter.auth.signIn();
-            await checkAuthStatus();
-        } catch (err) {
-            const msg = err instanceof Error ? err.message : "Sign in failed";
-            setError(msg);
-        }
+        // IMPORTANT: Call signIn() synchronously from the click handler.
+        // Wrapping in async or adding delays causes browsers to block the popup.
+        puter.auth.signIn()
+            .then(() => checkAuthStatus())
+            .catch((err: unknown) => {
+                const error = err as { code?: string; message?: string } | Error;
+                if (typeof error === "object" && error !== null && "code" in error && error.code === "popup_blocked") {
+                    setError("Popup was blocked. Please allow popups for this site and try again.");
+                } else {
+                    const msg = err instanceof Error ? err.message : "Sign in failed. Please try again.";
+                    setError(msg);
+                }
+                set({ isLoading: false });
+            });
     };
 
     const signOut = async (): Promise<void> => {

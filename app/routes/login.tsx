@@ -54,8 +54,8 @@ const Login = () => {
         }
     }, [auth.isAuthenticated, isInitializing, puterReady, next, navigate]);
 
-    const handleSignIn = async () => {
-        await auth.signIn();
+    const handleSignIn = () => {
+        auth.signIn();
     };
 
     const { isDark, toggle } = useTheme();
