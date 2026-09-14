@@ -10,7 +10,7 @@ export default function ResultsHeader({ companyName, jobTitle }: Props) {
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full">
       <Link 
         to="/upload" 
-        className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+        className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors py-2 px-1 -ml-1"
       >
         <svg 
           xmlns="http://www.w3.org/2000/svg" 
@@ -30,9 +30,9 @@ export default function ResultsHeader({ companyName, jobTitle }: Props) {
       </Link>
 
       {(companyName || jobTitle) && (
-        <div className="flex flex-col sm:text-right">
-          {companyName && <h1 className="text-white font-bold text-xl">{companyName}</h1>}
-          {jobTitle && <p className="text-slate-400">{jobTitle}</p>}
+        <div className="flex flex-col sm:text-right min-w-0 max-w-full">
+          {companyName && <p className="text-white font-bold text-lg sm:text-xl truncate">{companyName}</p>}
+          {jobTitle && <p className="text-slate-400 text-sm sm:text-base truncate">{jobTitle}</p>}
         </div>
       )}
     </div>

@@ -78,7 +78,7 @@ const FileUploader = ({ onFileSelect }: FileUploaderProps) => {
                         <p className="text-xs text-slate-500">{formatSize(file.size)} · {isPdf ? 'PDF' : 'DOCX'}</p>
                     </div>
                     <button
-                        className="p-1.5 cursor-pointer rounded-lg hover:bg-slate-700 transition-colors"
+                        className="p-2.5 cursor-pointer rounded-lg hover:bg-slate-700 transition-colors"
                         onClick={(e) => {
                             e.stopPropagation();
                             onFileSelect?.(null);

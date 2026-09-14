@@ -73,7 +73,7 @@ main {
 }
 
 h1 {
-  @apply text-5xl sm:text-6xl text-gradient leading-tight tracking-[-2px] font-bold;
+  @apply text-3xl sm:text-5xl md:text-6xl text-gradient leading-tight tracking-[-2px] font-bold;
 }
 
 h2 {
@@ -227,10 +227,10 @@ html.light .shadow-2xl {
     color: var(--text-secondary);
   }
   .auth-button {
-    @apply primary-gradient hover:primary-gradient-hover rounded-full py-4 px-8 cursor-pointer w-[600px] max-md:w-full text-3xl font-semibold text-white transition-all duration-300 active:scale-[0.98] shadow-lg shadow-indigo-500/10;
+    @apply primary-gradient hover:primary-gradient-hover rounded-full py-3 sm:py-4 px-6 sm:px-8 cursor-pointer w-full sm:w-[600px] text-xl sm:text-3xl font-semibold text-white transition-all duration-300 active:scale-[0.98] shadow-lg shadow-indigo-500/10;
   }
   .main-section {
-    @apply flex flex-col items-center gap-8 pt-12 px-4 sm:px-6 lg:px-8 mx-auto pb-8 w-full max-w-[1400px];
+    @apply flex flex-col items-center gap-6 sm:gap-8 pt-8 sm:pt-12 px-3 sm:px-6 lg:px-8 mx-auto pb-8 w-full max-w-[1400px];
   }
   .page-heading {
     @apply flex flex-col items-center gap-8 max-w-4xl text-center;
@@ -254,7 +254,7 @@ html.light .shadow-2xl {
   }
 
   .navbar {
-    @apply flex flex-row justify-between items-center backdrop-blur-md rounded-full p-4 w-full px-6 sm:px-10 max-w-[1200px] mx-auto relative;
+    @apply flex flex-row justify-between items-center backdrop-blur-md rounded-full p-3 sm:p-4 w-full px-4 sm:px-10 max-w-[1200px] mx-auto relative;
     background: var(--bg-navbar);
     border: 1px solid var(--border-primary);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);

@@ -28,7 +28,7 @@ export default function ScoreHero({ result }: Props) {
         
         {/* Main Gauge */}
         <div className="flex flex-col items-center">
-          <div className="relative w-64 h-32 flex justify-center overflow-hidden">
+          <div className="relative w-full max-w-[256px] h-32 flex justify-center overflow-hidden mx-auto">
             <svg className="w-full h-full" viewBox="0 0 200 100">
               <defs>
                 <linearGradient id="score-gradient" x1="0%" y1="0%" x2="100%" y2="0%">

@@ -108,37 +108,39 @@ const loadPuterScript = (): Promise<void> => {
         return Promise.reject(new Error("Puter.js can only load in the browser"));
     }
 
+    // Already available
     if (getPuter()) {
         return Promise.resolve();
     }
 
+    // Check if script tag already exists (e.g. from root.tsx)
     const existing = document.querySelector<HTMLScriptElement>(
         `script[src="${PUTER_SCRIPT_URL}"]`
     );
 
-    if (existing) {
-        return new Promise((resolve, reject) => {
-            if (getPuter()) {
-                resolve();
-                return;
-            }
-
-            existing.addEventListener("load", () => resolve(), { once: true });
-            existing.addEventListener(
-                "error",
-                () => reject(new Error("Failed to load Puter.js")),
-                { once: true }
-            );
-        });
-    }
-
-    return new Promise((resolve, reject) => {
+    if (!existing) {
+        // Inject the script dynamically
         const script = document.createElement("script");
         script.src = PUTER_SCRIPT_URL;
         script.async = true;
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error("Failed to load Puter.js"));
         document.head.appendChild(script);
+    }
+
+    // Poll for window.puter — handles the race condition where
+    // the script tag already loaded before React hydrated
+    return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 100; // 10 seconds max
+        const interval = setInterval(() => {
+            attempts++;
+            if (getPuter()) {
+                clearInterval(interval);
+                resolve();
+            } else if (attempts >= maxAttempts) {
+                clearInterval(interval);
+                reject(new Error("Puter.js failed to load after 10 seconds"));
+            }
+        }, 100);
     });
 };
 

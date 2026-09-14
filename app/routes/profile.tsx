@@ -32,27 +32,27 @@ const ProfileContent = () => {
         <main className="bg-gradient min-h-screen">
             <Navbar />
             <section className="main-section">
-                <div className="w-full max-w-2xl mx-auto py-8 sm:py-12 px-4 sm:px-6">
+                <div className="w-full max-w-2xl mx-auto py-6 sm:py-12">
                     {/* Header */}
                     <div className="mb-8">
-                        <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors text-sm mb-4">
+                        <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors text-sm mb-4 py-2 -ml-1 px-1">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                             </svg>
                             Back to Dashboard
                         </Link>
-                        <h1 className="!text-3xl sm:!text-4xl">Your Profile</h1>
+                        <h1 className="!text-2xl sm:!text-4xl">Your Profile</h1>
                     </div>
 
                     {/* Profile Card */}
-                    <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl mb-6">
+                    <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 sm:p-8 shadow-xl mb-6">
                         <div className="flex items-center gap-4 mb-6">
                             {/* Avatar */}
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-black text-2xl font-bold flex-shrink-0">
+                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-black text-xl sm:text-2xl font-bold flex-shrink-0">
                                 {auth.user?.username?.charAt(0)?.toUpperCase() || "U"}
                             </div>
-                            <div>
-                                <h3 className="text-xl font-bold text-white">{auth.user?.username || "User"}</h3>
+                            <div className="min-w-0">
+                                <h3 className="text-lg sm:text-xl font-bold text-white truncate">{auth.user?.username || "User"}</h3>
                                 <p className="text-sm text-slate-400">Resumind Member</p>
                             </div>
                         </div>
@@ -60,12 +60,12 @@ const ProfileContent = () => {
                         {/* Info Rows */}
                         <div className="flex flex-col gap-0 border-t border-slate-800">
                             <div className="flex items-center justify-between py-4 border-b border-slate-800/60">
-                                <span className="text-sm text-slate-400">Username</span>
-                                <span className="text-sm text-white font-medium">{auth.user?.username || "—"}</span>
+                                <span className="text-sm text-slate-400 flex-shrink-0">Username</span>
+                                <span className="text-sm text-white font-medium truncate ml-4">{auth.user?.username || "—"}</span>
                             </div>
                             <div className="flex items-center justify-between py-4 border-b border-slate-800/60">
-                                <span className="text-sm text-slate-400">User ID</span>
-                                <span className="text-xs text-slate-500 font-mono">{auth.user?.uuid || "—"}</span>
+                                <span className="text-sm text-slate-400 flex-shrink-0">User ID</span>
+                                <span className="text-xs text-slate-500 font-mono truncate ml-4 max-w-[180px] sm:max-w-none">{auth.user?.uuid || "—"}</span>
                             </div>
                             <div className="flex items-center justify-between py-4 border-b border-slate-800/60">
                                 <span className="text-sm text-slate-400">Resumes Analyzed</span>

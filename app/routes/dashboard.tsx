@@ -40,10 +40,10 @@ const DashboardContent = () => {
         <main className="bg-gradient min-h-screen">
             <Navbar />
             <section className="main-section">
-                <div className="w-full max-w-5xl mx-auto py-8 sm:py-12 px-4 sm:px-6">
+                <div className="w-full max-w-5xl mx-auto py-6 sm:py-12">
                     {/* Welcome Header */}
-                    <div className="mb-8">
-                        <h1 className="!text-3xl sm:!text-4xl mb-2">
+                    <div className="mb-6 sm:mb-8">
+                        <h1 className="!text-2xl sm:!text-4xl mb-2">
                             Welcome back,{" "}
                             <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-400 to-yellow-500">
                                 {auth.user?.username || "User"}
@@ -90,7 +90,7 @@ const DashboardContent = () => {
                             <p className="text-slate-500 text-sm">Loading your analyses...</p>
                         </div>
                     ) : resumes.length === 0 ? (
-                        <div className="bg-slate-900/30 border border-slate-800 rounded-2xl p-8 sm:p-12 text-center">
+                        <div className="bg-slate-900/30 border border-slate-800 rounded-2xl p-5 sm:p-12 text-center">
                             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-amber-500/5 border border-amber-500/15 flex items-center justify-center">
                                 <svg className="w-8 h-8 text-amber-400/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />

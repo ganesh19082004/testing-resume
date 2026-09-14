@@ -129,7 +129,7 @@ const ResumePage = () => {
             <Navbar />
 
             <section className="main-section">
-                <div className="w-full max-w-4xl mx-auto py-8 sm:py-12 px-4 sm:px-6 flex flex-col gap-6">
+                <div className="w-full max-w-4xl mx-auto py-6 sm:py-12 flex flex-col gap-5 sm:gap-6">
                     {/* Header */}
                     <ResultsHeader
                         companyName={resume.companyName}
@@ -137,7 +137,7 @@ const ResumePage = () => {
                     />
 
                     {/* Resume preview + Score hero */}
-                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 sm:gap-6">
                         {/* Resume image preview */}
                         {resumeImageUrl && (
                             <div className="lg:col-span-2">
@@ -145,7 +145,7 @@ const ResumePage = () => {
                                     <img
                                         src={resumeImageUrl}
                                         alt="Resume preview"
-                                        className="w-full rounded-xl object-cover object-top max-h-[400px]"
+                                        className="w-full rounded-xl object-cover object-top max-h-[220px] sm:max-h-[400px]"
                                     />
                                 </div>
                             </div>
